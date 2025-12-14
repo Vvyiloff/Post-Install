@@ -1,16 +1,16 @@
-# ⚡ Electron версия - Установщик программ
+# ⚡ Electron version - Software Installer
 
-Современная версия установщика с графическим интерфейсом.
+Modern version of the installer with graphical interface.
 
-## 📥 Установка
+## 📥 Installation
 
-### Из релиза:
-1. Скачайте `Post-Install-Electron-v1.0.1-Setup.exe` из [Releases](https://github.com/Vvyiloff/Post-Install/releases)
-2. Запустите установщик
+### From release:
+1. Download `Software-Installer-1.0.0-Setup.exe` from [Releases](https://github.com/Vvyiloff/Post-Install/releases)
+2. Run the installer
 
-Или скачайте портативную версию `Post-Install-Electron-v1.0.1.zip`
+Or download the portable version `Software-Installer-Electron-v1.0.0.zip`
 
-### Из исходников:
+### From source code:
 ```bash
 git clone https://github.com/Vvyiloff/Post-Install.git
 cd Post-Install/electron
@@ -18,48 +18,48 @@ npm install
 npm start
 ```
 
-## 🎯 Использование
+## 🎯 Usage
 
-1. Запустите приложение
-2. Дождитесь проверки установленных программ
-3. Выберите нужные программы (можно использовать профили)
-4. Нажмите "Начать установку"
-5. Следите за прогрессом в модальном окне
+1. Launch the application
+2. Wait for installed software check
+3. Select desired programs (you can use profiles)
+4. Click "Start Installation"
+5. Monitor progress in the modal window
 
-## 📋 Требования
+## 📋 Requirements
 
 - Windows 10/11 (x64)
 - winget (Windows Package Manager)
-- Node.js 16+ (только для разработки)
+- Node.js 16+ (development only)
 
-## 🔧 Разработка
+## 🔧 Development
 
 ```bash
-# Установка зависимостей
+# Install dependencies
 npm install
 
-# Запуск в режиме разработки
+# Run in development mode
 npm start
 
-# Сборка для продакшена
+# Build for production
 npm run build
 ```
 
-## 📁 Структура
+## 📁 Structure
 
 ```
 electron/
-├── main.js              # Главный процесс Electron
-├── preload.js           # IPC мост
-├── package.json         # Конфигурация
+├── main.js              # Electron main process
+├── preload.js           # IPC bridge
+├── package.json         # Configuration
 ├── src/
-│   ├── index.html       # Интерфейс
-│   ├── styles.css       # Стили
-│   └── app.js          # Логика
+│   ├── index.html       # Interface
+│   ├── styles.css       # Styles
+│   └── app.js          # Logic
 └── assets/
-    └── icon.svg         # Иконка
+    └── icon.svg         # Icon
 ```
 
-## 📝 Добавление программ
+## 📝 Adding programs
 
-Список программ находится в `shared/packages.json` (в корне проекта).
+The program list is located in `shared/packages.json` (in the project root).

@@ -1,7 +1,7 @@
 {
   "name": "electron-installer",
-  "version": "2.0.0",
-  "description": "Красивый установщик программ на Electron",
+  "version": "1.0.0",
+  "description": "Beautiful software installer built with Electron",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "com.electron.installer",
-    "productName": "Post-Install",
+    "productName": "Software-Installer",
     "directories": {
       "output": "releases"
     },
@@ -52,8 +52,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Post-Install",
-      "artifactName": "Post-Install ${version} Setup.exe",
+      "shortcutName": "Software-Installer",
+      "artifactName": "Software-Installer-${version}-Setup.exe",
       "deleteAppDataOnUninstall": false
     }
   }
