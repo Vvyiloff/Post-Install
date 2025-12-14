@@ -23,12 +23,11 @@
 
 ## Установка
 
-1. Склонируйте репозиторий или скачайте архив
-2. Перейдите в папку `casino-app`
+1. Склонируйте репозиторий
+2. Перейдите в папку 
 3. Запустите `software_installer.py`
 
 ```bash
-cd casino-app
 python software_installer.py
 ```
 
