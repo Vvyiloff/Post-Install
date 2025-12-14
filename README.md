@@ -1,6 +1,6 @@
 # 🚀 Software Installer
 
-[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/Vvyiloff/Post-Install/releases)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](https://github.com/Vvyiloff/Post-Install/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows)
 
@@ -57,8 +57,8 @@
 
 1. Перейдите в [Releases](https://github.com/Vvyiloff/Post-Install/releases)
 2. Скачайте последнюю версию:
-   - **Python:** `Post-Install-Python-v3.0.0.zip`
-   - **Electron:** `Software-Installer-3.0.0-Setup.exe` или `Software-Installer-Electron-v3.0.0.zip`
+   - **Python:** `Post-Install-Python-v3.1.0.zip`
+   - **Electron:** `Software-Installer-3.1.0-Setup.exe` или `Software-Installer-Electron-v3.1.0.zip`
 
 ### Вариант 2: Из исходного кода
 
@@ -104,6 +104,7 @@ npm start
 - **Поиск:** Введите название программы
 - **Фильтры:** Выберите категорию
 - **Профили:** Быстрый выбор категорий
+- **Проверка статуса:** Ручная проверка установленных программ
 - **Система:** Управление DNS и системная информация
 - **Логи:** Просмотр истории операций
 

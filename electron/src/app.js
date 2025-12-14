@@ -12,6 +12,7 @@ class AppInstaller {
         };
         this.initialized = false; // Флаг завершения инициализации
         this.activeModals = 0; // Счетчик активных модальных окон
+        this.statusChecked = false; // Флаг проверки статуса программ
 
         this.init();
     }
@@ -49,8 +50,9 @@ class AppInstaller {
             this.addLog('winget доступен', 'success');
         }
 
-        // Загружаем программы и проверяем статус установки
-        await this.loadPrograms();
+        // Загружаем программы без проверки статуса установки
+        await this.loadPrograms(false);
+        this.statusChecked = false;
 
         // Получаем и отображаем системную информацию
         await this.loadSystemInfo();
@@ -129,6 +131,7 @@ class AppInstaller {
         document.getElementById('categoryFilter').addEventListener('change', () => this.filterPrograms());
 
         // Кнопки действий
+        document.getElementById('checkStatusBtn').addEventListener('click', () => this.checkInstallationStatus());
         document.getElementById('selectAllBtn').addEventListener('click', () => this.toggleSelectAll());
         document.getElementById('installBtn').addEventListener('click', () => this.startInstallation());
 
@@ -193,7 +196,7 @@ class AppInstaller {
     }
 
     // Загрузка списка программ
-    async loadPrograms() {
+    async loadPrograms(checkStatus = true) {
         // Показываем индикатор загрузки
         this.showNotification('Проверка установленных программ...', 'info');
 
@@ -222,13 +225,16 @@ class AppInstaller {
             this.addLog('Ошибка загрузки packages.json, используется встроенный список', 'warning');
         }
 
-        // Проверяем статус установки программ
-        await this.checkProgramsInstallationStatus();
+        // Проверяем статус установки программ если запрошено
+        if (checkStatus) {
+            await this.checkProgramsInstallationStatus();
+        }
 
         this.renderPrograms();
         this.updateStats();
+        this.updateCheckStatusButton(checkStatus);
 
-        this.showNotification('Программы загружены успешно', 'success');
+        this.showNotification(checkStatus ? 'Программы загружены успешно' : 'Программы загружены (проверка статуса пропущена)', 'success');
     }
 
     // Получение иконки для программы
@@ -444,6 +450,9 @@ class AppInstaller {
             // Небольшая пауза перед скрытием
             await new Promise(resolve => setTimeout(resolve, 1000));
 
+            // Устанавливаем флаг что статус проверен
+            this.statusChecked = true;
+
         } catch (error) {
             console.error('Ошибка при проверке статуса программ:', error);
             this.updateInitStatus('Ошибка при проверке программ');
@@ -555,6 +564,43 @@ class AppInstaller {
         }
     }
 
+    // Ручная проверка статуса установленных программ
+    async checkInstallationStatus() {
+        const btn = document.getElementById('checkStatusBtn');
+        const originalText = btn.innerHTML;
+
+        // Блокируем кнопку и показываем индикатор загрузки
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Проверка...';
+
+        try {
+            this.showNotification('Проверка статуса установленных программ...', 'info');
+
+            // Проверяем статус установки программ
+            await this.checkProgramsInstallationStatus();
+
+            // Обновляем интерфейс
+            this.renderPrograms();
+            this.updateStats();
+            this.updateInstallButton();
+
+            this.statusChecked = true;
+            this.updateCheckStatusButton();
+
+            this.showNotification('Проверка завершена!', 'success');
+            this.addLog('Ручная проверка статуса установленных программ завершена', 'success');
+
+        } catch (error) {
+            console.error('Ошибка при проверке статуса:', error);
+            this.showNotification('Ошибка при проверке статуса программ', 'error');
+            this.addLog('Ошибка при ручной проверке статуса: ' + error.message, 'error');
+        } finally {
+            // Восстанавливаем кнопку
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
     // Выбор/снятие выбора всех программ
     toggleSelectAll() {
         const visiblePrograms = this.getFilteredPrograms();
@@ -643,6 +689,20 @@ class AppInstaller {
     updateStats() {
         document.getElementById('totalPrograms').textContent = this.programs.length;
         document.getElementById('selectedPrograms').textContent = this.selectedPrograms.size;
+    }
+
+    // Обновление кнопки проверки статуса
+    updateCheckStatusButton(checked = this.statusChecked) {
+        const btn = document.getElementById('checkStatusBtn');
+        if (!btn) return;
+
+        if (checked) {
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Статус проверен';
+            btn.className = 'btn btn-success';
+        } else {
+            btn.innerHTML = '<i class="fas fa-search"></i> Проверить статус';
+            btn.className = 'btn btn-warning';
+        }
     }
 
     // Обновление кнопки установки

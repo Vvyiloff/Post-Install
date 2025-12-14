@@ -5,10 +5,10 @@ Modern version of the installer with graphical interface.
 ## 📥 Installation
 
 ### From release:
-1. Скачайте `Software-Installer-3.0.0-Setup.exe` из [Releases](https://github.com/Vvyiloff/Post-Install/releases)
+1. Скачайте `Software-Installer-3.1.0-Setup.exe` из [Releases](https://github.com/Vvyiloff/Post-Install/releases)
 2. Запустите установщик
 
-Или скачайте портативную версию `Software-Installer-Electron-v3.0.0.zip`
+Или скачайте портативную версию `Software-Installer-Electron-v3.1.0.zip`
 
 ### From source code:
 ```bash
