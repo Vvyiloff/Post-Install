@@ -74,12 +74,18 @@ jobs:
       
       - name: Build Python executable
         run: |
-          if (Test-Path "python\software_installer.py") {
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Checking for python/software_installer.py..."
+          if (Test-Path "python/software_installer.py") {
+            Write-Host "File found! Building..."
             cd python
-            pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath ..\dist-python software_installer.py
+            pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath ../dist-python software_installer.py
           } else {
-            Write-Host "ERROR: software_installer.py not found"
-            Get-ChildItem -Recurse -Filter "*.py" | Select-Object FullName
+            Write-Host "ERROR: software_installer.py not found in python/ directory"
+            Write-Host "Files in python/:"
+            Get-ChildItem -Path python -ErrorAction SilentlyContinue | Select-Object Name
+            Write-Host "All .py files:"
+            Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue | Select-Object FullName
             exit 1
           }
       

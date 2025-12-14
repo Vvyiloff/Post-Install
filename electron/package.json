@@ -42,8 +42,19 @@
     ],
     "win": {
       "target": "nsis",
-      "sign": false
+      "sign": false,
+      "verifyUpdateCodeSignature": false
     },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Установщик программ",
+      "artifactName": "Установщик программ ${version} Setup.exe",
+      "deleteAppDataOnUninstall": false
+    }
+  }
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
