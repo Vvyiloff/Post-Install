@@ -5,10 +5,10 @@ Modern version of the installer with graphical interface.
 ## 📥 Installation
 
 ### From release:
-1. Download `Software-Installer-2.0.7-Setup.exe` from [Releases](https://github.com/Vvyiloff/Post-Install/releases)
+1. Download `Software-Installer-2.0.8-Setup.exe` from [Releases](https://github.com/Vvyiloff/Post-Install/releases)
 2. Run the installer
 
-Or download the portable version `Software-Installer-Electron-v2.0.7.zip`
+Or download the portable version `Software-Installer-Electron-v2.0.8.zip`
 
 ### From source code:
 ```bash
