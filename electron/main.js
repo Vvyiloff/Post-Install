@@ -355,13 +355,11 @@ ipcMain.handle('rollback-dns', async () => {
 
 async function getActiveInterface() {
     return new Promise((resolve) => {
-        // Используем PowerShell Get-NetAdapter для надежного получения интерфейсов
-        const powershell = spawn('powershell', [
-            '-Command',
-            "chcp 65001 > $null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1 -ExpandProperty Name"
-        ], {
+        // Используем netsh interface ipv4 show interfaces - простой и надежный способ
+        const netsh = spawn('netsh', ['interface', 'ipv4', 'show', 'interfaces'], {
             stdio: 'pipe',
-            shell: true
+            shell: true,
+            encoding: 'cp866' // Для корректного чтения русских символов
         });
 
         let output = '';
@@ -370,41 +368,67 @@ async function getActiveInterface() {
         // Таймаут для предотвращения зависания
         const timeout = setTimeout(() => {
             if (!resolved) {
-                powershell.kill();
+                netsh.kill();
                 resolve(null);
                 resolved = true;
             }
         }, 10000); // 10 секунд таймаут
 
-        powershell.stdout.on('data', (data) => {
-            output += data.toString('utf8').trim();
+        netsh.stdout.on('data', (data) => {
+            output += data.toString();
         });
 
-        powershell.on('close', (code) => {
+        netsh.on('close', (code) => {
             if (resolved) return;
             clearTimeout(timeout);
             resolved = true;
 
             if (code !== 0) {
-                console.error('PowerShell Get-NetAdapter command failed with code:', code);
+                console.error('netsh ipv4 show interfaces command failed with code:', code);
                 resolve(null);
                 return;
             }
 
-            const interfaceName = output.trim();
-            console.log(`PowerShell Get-NetAdapter result: "${interfaceName}"`);
+            const lines = output.split('\n');
+            let activeInterface = null;
 
-            if (interfaceName && interfaceName !== '') {
-                console.log(`Found active interface: "${interfaceName}"`);
-                resolve(interfaceName);
-            } else {
-                console.log('No active interface found');
-                resolve(null);
+            console.log('Parsing netsh ipv4 interfaces output...');
+
+            // Пропускаем заголовок
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // Пропускаем заголовок и разделители
+                if (line.includes('Инд') ||
+                    line.includes('Idx') ||
+                    line.includes('---') ||
+                    line === '') {
+                    continue;
+                }
+
+                // Парсим строку: "4          25        1500  connected     Ethernet"
+                const parts = line.split(/\s+/);
+                if (parts.length >= 5) {
+                    const status = parts[3]; // connected/disconnected
+                    const interfaceName = parts.slice(4).join(' ').trim(); // Название интерфейса
+
+                    console.log(`Interface: "${interfaceName}" - Status: ${status}`);
+
+                    // Ищем подключенный интерфейс
+                    if (status === 'connected') {
+                        activeInterface = interfaceName;
+                        console.log(`Found active interface: "${activeInterface}"`);
+                        break; // Берем первый найденный активный интерфейс
+                    }
+                }
             }
+
+            console.log(`Selected active interface: "${activeInterface || 'none'}"`);
+            resolve(activeInterface);
         });
 
-        powershell.on('error', (error) => {
-            console.error('PowerShell Get-NetAdapter command error:', error);
+        netsh.on('error', (error) => {
+            console.error('netsh command error:', error);
             if (!resolved) {
                 clearTimeout(timeout);
                 resolved = true;
