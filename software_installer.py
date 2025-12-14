@@ -23,16 +23,15 @@ logging.basicConfig(
 def log(msg):
     logging.info(msg)
 
-# ===================== НАСТРОЙКИ =====================
-
-DNS1 = "176.99.11.77"
-DNS2 = "80.78.247.254"
-DOH_TEMPLATE = "https://xbox-dns.ru/dns-query"
-
 # Настройки GitHub
 GITHUB_REPO = "Vvyiloff/Post-Install"  # Ваш репозиторий
 GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/packages.json"
 LOCAL_PACKAGES_FILE = "packages.json"
+
+# Настройки DNS
+DNS1 = "176.99.11.77"
+DNS2 = "80.78.247.254"
+DOH_TEMPLATE = "https://xbox-dns.ru/dns-query"
 
 valorant_installed = False
 update_available = False
@@ -90,86 +89,8 @@ def uninstall_package(pkg_id):
         return False
 
 def get_installed_packages():
-    installed = []
-    for pkg in PACKAGES:
-        if is_installed(pkg["id"]):
-            installed.append(pkg)
-    return installed
-
-# ===================== GITHUB =====================
-
-def load_packages_from_github():
-    """Загружает список пакетов из GitHub"""
-    global PACKAGES, update_available
-
-    try:
-        # Пытаемся загрузить с GitHub
-        with urllib.request.urlopen(GITHUB_RAW_URL, timeout=10) as response:
-            github_packages = json.loads(response.read().decode('utf-8'))
-
-        # Сравниваем с текущим списком
-        if github_packages != PACKAGES:
-            update_available = True
-            return github_packages
-        else:
-            update_available = False
-            return None
-
-    except (urllib.error.URLError, json.JSONDecodeError, ValueError) as e:
-        log(f"Ошибка загрузки с GitHub: {e}")
-        update_available = False
-        return None
-
-def save_packages_to_file(packages):
-    """Сохраняет список пакетов в локальный файл"""
-    try:
-        with open(LOCAL_PACKAGES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(packages, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception as e:
-        log(f"Ошибка сохранения пакетов: {e}")
-        return False
-
-def load_packages_from_file():
-    """Загружает список пакетов из локального файла"""
-    try:
-        if os.path.exists(LOCAL_PACKAGES_FILE):
-            with open(LOCAL_PACKAGES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-    except Exception as e:
-        log(f"Ошибка загрузки локальных пакетов: {e}")
-    return None
-
-def check_for_updates():
-    """Проверяет наличие обновлений в фоновом режиме"""
-    global update_checking
-
-    if update_checking:
-        return
-
-    update_checking = True
-
-    def update_check_thread():
-        global PACKAGES, update_checking
-        try:
-            github_packages = load_packages_from_github()
-            if github_packages:
-                # Сохраняем новые пакеты в файл
-                if save_packages_to_file(github_packages):
-                    # Предлагаем пользователю обновить
-                    if messagebox.askyesno("Обновление доступно",
-                                         "Доступна новая версия списка программ. Обновить?"):
-                        PACKAGES = github_packages
-                        refresh_software_list()
-                        refresh_installed_list()
-                        messagebox.showinfo("Обновлено", "Список программ обновлён!")
-        except Exception as e:
-            log(f"Ошибка проверки обновлений: {e}")
-        finally:
-            update_checking = False
-
-    # Запускаем проверку в отдельном потоке
-    threading.Thread(target=update_check_thread, daemon=True).start()
+    """Returns empty list to avoid laggy detection"""
+    return []
 
 # ===================== DNS =====================
 
@@ -259,6 +180,96 @@ def rollback_dns():
 
     messagebox.showinfo("DNS", "DNS возвращён в авто")
 
+# ===================== GITHUB =====================
+
+def load_packages_from_github():
+    """Загружает список пакетов из GitHub (оптимизированная версия)"""
+    global PACKAGES, update_available
+
+    try:
+        # Быстрая загрузка с GitHub с коротким таймаутом
+        req = urllib.request.Request(GITHUB_RAW_URL)
+        req.add_header('Cache-Control', 'no-cache')
+        req.add_header('Pragma', 'no-cache')
+
+        # Используем короткий таймаут для быстрого отклика
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = response.read()
+
+        # Быстрое декодирование и парсинг
+        github_packages = json.loads(data.decode('utf-8'))
+
+        # Быстрое сравнение только по длине и хэшу
+        if len(github_packages) != len(PACKAGES):
+            update_available = True
+            return github_packages
+
+        # Проверяем только если количество совпадает
+        for i, pkg in enumerate(github_packages):
+            if pkg != PACKAGES[i]:
+                update_available = True
+                return github_packages
+
+        update_available = False
+        return None
+
+    except (urllib.error.URLError, json.JSONDecodeError, ValueError, Exception) as e:
+        log(f"Ошибка загрузки с GitHub: {e}")
+        update_available = False
+        return None
+
+def save_packages_to_file(packages):
+    """Сохраняет список пакетов в локальный файл"""
+    try:
+        with open(LOCAL_PACKAGES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(packages, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        log(f"Ошибка сохранения пакетов: {e}")
+        return False
+
+def load_packages_from_file():
+    """Загружает список пакетов из локального файла"""
+    try:
+        if os.path.exists(LOCAL_PACKAGES_FILE):
+            with open(LOCAL_PACKAGES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        log(f"Ошибка загрузки локальных пакетов: {e}")
+    return None
+
+def check_for_updates():
+    """Проверяет наличие обновлений в фоновом режиме"""
+    global update_checking
+
+    if update_checking:
+        return
+
+    update_checking = True
+
+    def update_check_thread():
+        global PACKAGES, update_checking
+        try:
+            github_packages = load_packages_from_github()
+            if github_packages:
+                # Сохраняем новые пакеты в файл
+                if save_packages_to_file(github_packages):
+                    # Предлагаем пользователю обновить
+                    if messagebox.askyesno("Обновление доступно",
+                                         "Доступна новая версия списка программ. Обновить?"):
+                        PACKAGES = github_packages
+                        refresh_software_list()
+                        refresh_installed_list()
+                        messagebox.showinfo("Обновлено", "Список программ обновлён!")
+        except Exception as e:
+            log(f"Ошибка проверки обновлений: {e}")
+        finally:
+            update_checking = False
+
+    # Запускаем проверку в отдельном потоке
+    threading.Thread(target=update_check_thread, daemon=True).start()
+
+
 # ===================== GUI =====================
 
 root = tk.Tk()
@@ -273,8 +284,6 @@ install_all_var = tk.BooleanVar()
 progress = tk.DoubleVar()
 status_text = tk.StringVar()
 status_text.set("Готово к установке")
-show_installed_var = tk.BooleanVar()
-show_installed_var.set(True)
 
 items = []
 
@@ -286,9 +295,6 @@ def apply_profile(profile):
     for item in items:
         item["var"].set(item["pkg"]["group"] == profile)
 
-def toggle_show_installed():
-    refresh_software_list()
-
 def refresh_software_list():
     # Clear existing checkboxes
     for widget in box.winfo_children():
@@ -297,11 +303,9 @@ def refresh_software_list():
     items.clear()
 
     for pkg in PACKAGES:
-        if show_installed_var.get() or not is_installed(pkg["id"]):
-            v = tk.BooleanVar()
-            status = " (установлено)" if is_installed(pkg["id"]) else ""
-            ttk.Checkbutton(box, text=f"{pkg['name']}{status} ({pkg['group']})", variable=v).pack(anchor="w")
-            items.append({"pkg": pkg, "var": v})
+        v = tk.BooleanVar()
+        ttk.Checkbutton(box, text=f"{pkg['name']} ({pkg['group']})", variable=v).pack(anchor="w")
+        items.append({"pkg": pkg, "var": v})
 
 def install_selected():
     global valorant_installed
@@ -363,11 +367,9 @@ def install_selected():
 notebook = ttk.Notebook(root)
 tab_soft = ttk.Frame(notebook)
 tab_sys = ttk.Frame(notebook)
-tab_installed = ttk.Frame(notebook)
 
 notebook.add(tab_soft, text="Софт")
 notebook.add(tab_sys, text="Система")
-notebook.add(tab_installed, text="Установлено")
 notebook.pack(expand=True, fill="both", padx=10, pady=10)
 
 # ===== СОФТ =====
@@ -383,7 +385,6 @@ refresh_software_list()
 ttk.Separator(tab_soft).pack(fill="x", pady=8)
 
 ttk.Checkbutton(tab_soft, text="Установить всё", variable=install_all_var, command=toggle_install_all).pack()
-ttk.Checkbutton(tab_soft, text="Показывать установленные программы", variable=show_installed_var, command=toggle_show_installed).pack()
 
 profiles = ttk.Frame(tab_soft)
 profiles.pack(pady=5)
@@ -401,7 +402,6 @@ progress_frame.pack(fill="x", padx=10, pady=10)
 # Status label showing current operation
 status_label = ttk.Label(progress_frame, textvariable=status_text, anchor="w")
 status_label.pack(fill="x")
-
 # Progress bar
 progress_bar = ttk.Progressbar(progress_frame, variable=progress, maximum=100)
 progress_bar.pack(fill="x", pady=(5, 0))
@@ -414,68 +414,51 @@ ttk.Button(tab_sys, text="Настроить DNS", command=set_dns).pack(pady=5)
 ttk.Button(tab_sys, text="Откат DNS", command=rollback_dns).pack(pady=5)
 ttk.Button(tab_sys, text="Проверить обновления", command=check_for_updates).pack(pady=5)
 
-# ===== УСТАНОВЛЕНО =====
-
-def refresh_installed_list():
-    # Clear existing widgets
-    for widget in tab_installed.winfo_children():
-        widget.destroy()
-
-    ttk.Label(tab_installed, text="Установленные программы", style="Header.TLabel").pack(pady=10)
-
-    installed_packages = get_installed_packages()
-
-    if not installed_packages:
-        ttk.Label(tab_installed, text="Нет установленных программ из списка").pack(pady=20)
-        return
-
-    # Create treeview for installed packages
-    tree_frame = ttk.Frame(tab_installed)
-    tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
-    tree = ttk.Treeview(tree_frame, columns=("name", "group", "action"), show="headings")
-    tree.heading("name", text="Название")
-    tree.heading("group", text="Группа")
-    tree.heading("action", text="Действие")
-    tree.column("name", width=200)
-    tree.column("group", width=150)
-    tree.column("action", width=100)
-
-    # Add scrollbar
-    scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
-    tree.configure(yscrollcommand=scrollbar.set)
-
-    # Pack tree and scrollbar
-    tree.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
-
-    # Add installed packages to tree
-    for pkg in installed_packages:
-        tree.insert("", "end", values=(pkg["name"], pkg["group"], "Удалить"))
-
-    def on_tree_click(event):
-        item = tree.selection()[0]
-        pkg_name = tree.item(item)["values"][0]
-        pkg = next((p for p in installed_packages if p["name"] == pkg_name), None)
-
-        if pkg and messagebox.askyesno("Удаление", f"Удалить {pkg['name']}?"):
-            if uninstall_package(pkg["id"]):
-                messagebox.showinfo("Успех", f"{pkg['name']} удалён")
-                refresh_installed_list()
-            else:
-                messagebox.showerror("Ошибка", f"Не удалось удалить {pkg['name']}")
-
-    tree.bind("<Double-1>", on_tree_click)
-
-    # Refresh button
-    ttk.Button(tab_installed, text="Обновить список", command=refresh_installed_list).pack(pady=10)
 
 # ===================== START =====================
+
+def load_initial_packages():
+    """Load packages from GitHub on startup (asynchronous)"""
+    global PACKAGES
+
+    def load_thread():
+        global PACKAGES
+        try:
+            # Try to load from GitHub first (fast timeout)
+            github_packages = load_packages_from_github()
+            if github_packages:
+                PACKAGES = github_packages
+                log("Загружены пакеты с GitHub")
+                # Update UI on main thread
+                root.after(100, refresh_software_list)
+                return
+
+            # Fallback to local file
+            local_packages = load_packages_from_file()
+            if local_packages:
+                PACKAGES = local_packages
+                log("Загружены пакеты из локального файла")
+                # Update UI on main thread
+                root.after(100, refresh_software_list)
+                return
+
+            log("Используются встроенные пакеты")
+            # Update UI on main thread
+            root.after(100, refresh_software_list)
+
+        except Exception as e:
+            log(f"Ошибка загрузки пакетов: {e}")
+            # Update UI on main thread
+            root.after(100, refresh_software_list)
+
+    # Start loading in background thread
+    threading.Thread(target=load_thread, daemon=True).start()
 
 if not shutil.which("winget"):
     messagebox.showerror("Ошибка", "winget не найден")
 else:
-    # Show main window immediately
-    root.after(100, refresh_installed_list)  # Delay installed packages tab loading
-    root.after(200, refresh_software_list)   # Delay software list loading
+    # Start loading packages in background
+    load_initial_packages()
+
+    # Show main window immediately (no delay)
     root.mainloop()

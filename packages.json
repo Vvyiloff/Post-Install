@@ -71,6 +71,11 @@
         "group": "Базовый софт"
     },
     {
+        "name": "Yandex.Disk",
+        "id": "Yandex.Disk",
+        "group": "Графика"
+    },
+    {
         "name": "OBS Studio",
         "id": "OBSProject.OBSStudio",
         "group": "Стриминг"
@@ -87,12 +92,12 @@
     },
     {
         "name": "Blender",
-        "id": "BlenderFoundation.Blender",
+        "id": "ч",
         "group": "3D-графика"
     },
     {
         "name": "GIMP",
-        "id": "GIMP.GIMP",
+        "id": "GIMP.GIMP.3",
         "group": "Графика"
     }
 ]
