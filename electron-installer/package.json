@@ -1,0 +1,53 @@
+{
+  "name": "electron-installer",
+  "version": "1.0.0",
+  "description": "Красивый установщик программ на Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "installer",
+    "electron",
+    "winget",
+    "windows"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.electron.installer",
+    "productName": "Установщик программ",
+    "directories": {
+      "output": "releases"
+    },
+    "files": [
+      "**/*",
+      "!releases/**/*",
+      "!build/**/*",
+      "!*.md",
+      "!node_modules/electron-builder-binaries/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "sign": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Установщик программ",
+      "artifactName": "Установщик программ ${version} Setup.exe",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
