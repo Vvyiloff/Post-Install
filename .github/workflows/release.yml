@@ -120,8 +120,32 @@ jobs:
       - name: Create Python archive
         run: |
           $version = "${{ steps.get_version.outputs.version }}"
+          $filesToArchive = @()
+          
+          # Add the EXE if it exists
           if (Test-Path "dist-python/Post-Install-Python.exe") {
-            Compress-Archive -Path "dist-python/Post-Install-Python.exe", "shared/packages.json", "README.md", "LICENSE" -DestinationPath "Post-Install-Python-v$version.zip" -Force
+            $filesToArchive += "dist-python/Post-Install-Python.exe"
+          } else {
+            Write-Host "WARNING: dist-python/Post-Install-Python.exe not found — skipping"
+          }
+          
+          # Optional files (only add if present)
+          foreach ($f in @("shared/packages.json", "README.md", "LICENSE")) {
+            if (Test-Path $f) {
+              $filesToArchive += $f
+              Write-Host "Adding $f to archive"
+            } else {
+              Write-Host "WARNING: $f not found — skipping"
+            }
+          }
+          
+          if ($filesToArchive.Count -gt 0) {
+            Write-Host "Archiving files: $($filesToArchive -join ', ')"
+            Compress-Archive -Path $filesToArchive -DestinationPath "Post-Install-Python-v$version.zip" -Force
+            Write-Host "Archive created successfully: Post-Install-Python-v$version.zip"
+          } else {
+            Write-Host "ERROR: No files found to archive"
+            exit 1
           }
       
       - name: Upload Python artifacts
