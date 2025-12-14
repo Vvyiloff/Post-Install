@@ -27,13 +27,31 @@ ipcRenderer.on('error-occurred', (event, errorData) => {
         </div>
     `;
 
-    document.body.appendChild(errorModal);
+    // Проверяем, что DOM загружен и элементы существуют
+    if (document.body) {
+        document.body.appendChild(errorModal);
 
-    // Показываем модальное окно
-    setTimeout(() => {
-        document.getElementById('modalOverlay').classList.add('active');
-        errorModal.style.display = 'block';
-    }, 100);
+        // Показываем модальное окно
+        setTimeout(() => {
+            const modalOverlay = document.getElementById('modalOverlay');
+            if (modalOverlay) {
+                modalOverlay.classList.add('active');
+            }
+            errorModal.style.display = 'block';
+        }, 100);
+    } else {
+        // Если DOM еще не загружен, ждем
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.appendChild(errorModal);
+            setTimeout(() => {
+                const modalOverlay = document.getElementById('modalOverlay');
+                if (modalOverlay) {
+                    modalOverlay.classList.add('active');
+                }
+                errorModal.style.display = 'block';
+            }, 100);
+        });
+    }
 
     // Добавляем уведомление в консоль браузера для разработчиков
     if (window.app && typeof window.app.showNotification === 'function') {
@@ -43,6 +61,11 @@ ipcRenderer.on('error-occurred', (event, errorData) => {
 
 // Безопасное API для renderer процесса
 contextBridge.exposeInMainWorld('electronAPI', {
+    // Отправка событий в main процесс
+    send: (channel, data) => {
+        ipcRenderer.send(channel, data);
+    },
+
     // Проверка winget
     checkWinget: () => ipcRenderer.invoke('check-winget'),
 
@@ -66,6 +89,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Слушатели событий
     onProgressUpdate: (callback) => ipcRenderer.on('progress-update', callback),
     onInstallComplete: (callback) => ipcRenderer.on('install-complete', callback),
+    onWindowMaximize: (callback) => ipcRenderer.on('window-maximized', callback),
+    onWindowUnmaximize: (callback) => ipcRenderer.on('window-unmaximized', callback),
 
     // Удаление слушателей
     removeAllListeners: (event) => ipcRenderer.removeAllListeners(event)
@@ -73,13 +98,52 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 // Дополнительные утилиты
 contextBridge.exposeInMainWorld('utils', {
-    // Проверка прав администратора (упрощенная версия)
+    // Проверка прав администратора
     isAdmin: () => {
         try {
-            // В Windows можно проверить через процесс
-            return true; // Для простоты, в реальности нужно проверять
-        } catch {
+            // В Windows проверяем через PowerShell
+            const { spawnSync } = require('child_process');
+            const result = spawnSync('powershell', [
+                '-Command',
+                '[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'
+            ], {
+                encoding: 'utf8',
+                stdio: 'pipe'
+            });
+
+            return result.stdout && result.stdout.trim() === 'True';
+        } catch (error) {
+            console.warn('Ошибка проверки прав администратора:', error);
             return false;
+        }
+    },
+
+    // Управление окном
+    minimizeWindow: () => {
+        const { BrowserWindow } = require('electron');
+        const focusedWindow = BrowserWindow.getFocusedWindow();
+        if (focusedWindow) {
+            focusedWindow.minimize();
+        }
+    },
+
+    maximizeWindow: () => {
+        const { BrowserWindow } = require('electron');
+        const focusedWindow = BrowserWindow.getFocusedWindow();
+        if (focusedWindow) {
+            if (focusedWindow.isMaximized()) {
+                focusedWindow.unmaximize();
+            } else {
+                focusedWindow.maximize();
+            }
+        }
+    },
+
+    closeWindow: () => {
+        const { BrowserWindow } = require('electron');
+        const focusedWindow = BrowserWindow.getFocusedWindow();
+        if (focusedWindow) {
+            focusedWindow.close();
         }
     },
 

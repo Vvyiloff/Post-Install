@@ -81,6 +81,12 @@ class AppInstaller {
             console.error('Ошибка загрузки системной информации:', error);
             this.addLog('Ошибка загрузки системной информации', 'warning');
         }
+
+        // Настраиваем слушатели событий от main процесса
+        this.setupEventListeners();
+
+        // Устанавливаем начальное состояние кнопки maximize
+        this.updateMaximizeButton(false);
     }
 
     bindEvents() {
@@ -91,14 +97,27 @@ class AppInstaller {
 
         // Управление окном
         document.getElementById('minimizeBtn').addEventListener('click', () => {
-            // В Electron это обрабатывается в main процессе
-            console.log('Minimize window');
+            window.utils.minimizeWindow();
+        });
+
+        document.getElementById('maximizeBtn').addEventListener('click', () => {
+            window.utils.maximizeWindow();
+            // Иконка обновится автоматически через событие изменения размера
         });
 
         document.getElementById('closeBtn').addEventListener('click', () => {
-            // В Electron это обрабатывается в main процессе
-            console.log('Close window');
+            window.utils.closeWindow();
         });
+
+        // Двойной клик по заголовку для максимизации/восстановления
+        const titleBar = document.querySelector('.title-bar');
+        if (titleBar) {
+            titleBar.addEventListener('dblclick', (e) => {
+                // Не максимизируем если кликнули на кнопки управления
+                if (e.target.closest('.window-controls')) return;
+                window.utils.maximizeWindow();
+            });
+        }
 
         // Переключатель темы
         document.getElementById('themeSwitch').addEventListener('change', (e) => {
@@ -146,6 +165,31 @@ class AppInstaller {
             this.logFilters.search = e.target.value.toLowerCase();
             this.renderLogs();
         });
+    }
+
+    // Настройка слушателей событий от main процесса
+    setupEventListeners() {
+        window.electronAPI.onWindowMaximize(() => {
+            this.updateMaximizeButton(true);
+        });
+
+        window.electronAPI.onWindowUnmaximize(() => {
+            this.updateMaximizeButton(false);
+        });
+    }
+
+    // Обновление иконки кнопки maximize/restore
+    updateMaximizeButton(isMaximized) {
+        const maximizeBtn = document.getElementById('maximizeBtn');
+        const icon = maximizeBtn.querySelector('i');
+
+        if (isMaximized) {
+            icon.className = 'fas fa-window-restore';
+            maximizeBtn.title = 'Восстановить';
+        } else {
+            icon.className = 'fas fa-square';
+            maximizeBtn.title = 'Развернуть';
+        }
     }
 
     // Загрузка списка программ

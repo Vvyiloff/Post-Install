@@ -12,14 +12,14 @@ function createWindow() {
         height: 800,
         minWidth: 1000,
         minHeight: 700,
+        frame: false, // Убираем стандартное меню Windows
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
             enableRemoteModule: false,
             preload: path.join(__dirname, 'preload.js')
         },
-        icon: path.join(__dirname, 'assets', 'icon.png'), // Добавим позже
-        titleBarStyle: 'hiddenInset',
+        icon: path.join(__dirname, 'assets', 'icon.svg'),
         backgroundColor: '#ffffff',
         show: false
     });
@@ -34,6 +34,14 @@ function createWindow() {
     if (process.env.NODE_ENV === 'development') {
         mainWindow.webContents.openDevTools();
     }
+
+    mainWindow.on('maximize', () => {
+        mainWindow.webContents.send('window-maximized');
+    });
+
+    mainWindow.on('unmaximize', () => {
+        mainWindow.webContents.send('window-unmaximized');
+    });
 
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -183,12 +191,26 @@ ipcMain.handle('get-active-interface', async () => {
         });
 
         let output = '';
+        let resolved = false;
+
+        // Таймаут для предотвращения зависания
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                ipconfig.kill();
+                resolve(null);
+                resolved = true;
+            }
+        }, 10000); // 10 секунд таймаут
 
         ipconfig.stdout.on('data', (data) => {
             output += data.toString();
         });
 
         ipconfig.on('close', () => {
+            if (resolved) return;
+            clearTimeout(timeout);
+            resolved = true;
+
             const lines = output.split('\n');
             let currentAdapter = null;
 
@@ -204,7 +226,11 @@ ipcMain.handle('get-active-interface', async () => {
         });
 
         ipconfig.on('error', () => {
-            resolve(null);
+            if (!resolved) {
+                clearTimeout(timeout);
+                resolved = true;
+                resolve(null);
+            }
         });
     });
 });
@@ -216,7 +242,7 @@ ipcMain.handle('check-dns', async () => {
             return { success: false, message: 'Активный интерфейс не найден' };
         }
 
-        return new Promise((resolve) => {
+        return await new Promise((resolve) => {
             const netsh = spawn('netsh', ['interface', 'ip', 'show', 'dns', `name="${interface}"`], {
                 stdio: 'pipe',
                 shell: true,
@@ -236,6 +262,10 @@ ipcMain.handle('check-dns', async () => {
                     resolve({ success: false, message: 'Ошибка получения информации о DNS' });
                 }
             });
+
+            netsh.on('error', (error) => {
+                resolve({ success: false, message: `Ошибка выполнения команды: ${error.message}` });
+            });
         });
     } catch (error) {
         return { success: false, message: `Ошибка: ${error.message}` };
@@ -243,6 +273,8 @@ ipcMain.handle('check-dns', async () => {
 });
 
 ipcMain.handle('set-dns', async () => {
+    let primaryDnsSet = false;
+
     try {
         const interface = await getActiveInterface();
         if (!interface) {
@@ -252,12 +284,39 @@ ipcMain.handle('set-dns', async () => {
         const dns1 = '176.99.11.77';
         const dns2 = '80.78.247.254';
 
-        // Установка DNS
-        await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'static', dns1]);
-        await runNetshCommand(['interface', 'ip', 'add', 'dns', `name="${interface}"`, dns2, 'index=2']);
+        // Установка первичного DNS
+        try {
+            await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'static', dns1]);
+            primaryDnsSet = true;
+        } catch (error) {
+            return { success: false, message: `Ошибка установки первичного DNS: ${error.message}` };
+        }
+
+        // Установка вторичного DNS
+        try {
+            await runNetshCommand(['interface', 'ip', 'add', 'dns', `name="${interface}"`, dns2, 'index=2']);
+        } catch (error) {
+            // Если вторичный DNS не удалось установить, но первичный установлен,
+            // оставляем систему в рабочем состоянии с хотя бы одним DNS
+            console.warn(`Не удалось установить вторичный DNS, но первичный DNS настроен: ${error.message}`);
+        }
 
         return { success: true, message: 'DNS настроен успешно' };
+
     } catch (error) {
+        // Если произошла непредвиденная ошибка, пытаемся откатить изменения
+        if (primaryDnsSet) {
+            try {
+                const interface = await getActiveInterface();
+                if (interface) {
+                    await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
+                    console.log('DNS откат выполнен из-за ошибки');
+                }
+            } catch (rollbackError) {
+                console.error('Не удалось выполнить откат DNS:', rollbackError);
+            }
+        }
+
         return { success: false, message: `Ошибка настройки DNS: ${error.message}` };
     }
 });
@@ -286,12 +345,26 @@ async function getActiveInterface() {
         });
 
         let output = '';
+        let resolved = false;
+
+        // Таймаут для предотвращения зависания
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                ipconfig.kill();
+                resolve(null);
+                resolved = true;
+            }
+        }, 10000); // 10 секунд таймаут
 
         ipconfig.stdout.on('data', (data) => {
             output += data.toString();
         });
 
         ipconfig.on('close', () => {
+            if (resolved) return;
+            clearTimeout(timeout);
+            resolved = true;
+
             const lines = output.split('\n');
             let currentAdapter = null;
 
@@ -307,7 +380,11 @@ async function getActiveInterface() {
         });
 
         ipconfig.on('error', () => {
-            resolve(null);
+            if (!resolved) {
+                clearTimeout(timeout);
+                resolved = true;
+                resolve(null);
+            }
         });
     });
 }
@@ -319,7 +396,22 @@ function runNetshCommand(args) {
             shell: true
         });
 
+        let resolved = false;
+
+        // Таймаут для предотвращения зависания
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                netsh.kill();
+                reject(new Error('Таймаут выполнения команды'));
+                resolved = true;
+            }
+        }, 15000); // 15 секунд таймаут
+
         netsh.on('close', (code) => {
+            if (resolved) return;
+            clearTimeout(timeout);
+            resolved = true;
+
             if (code === 0) {
                 resolve();
             } else {
@@ -328,7 +420,11 @@ function runNetshCommand(args) {
         });
 
         netsh.on('error', (error) => {
-            reject(error);
+            if (!resolved) {
+                clearTimeout(timeout);
+                resolved = true;
+                reject(error);
+            }
         });
     });
 }
@@ -367,24 +463,28 @@ ipcMain.handle('get-system-info', async () => {
             });
 
             // Парсим версию из вывода
-            const versionMatch = verOutput.match(/\[Version (\d+\.\d+\.\d+)\]/);
+            const versionMatch = verOutput.match(/\[Version (\d+(?:\.\d+)*)\]/);
             if (versionMatch) {
-                const version = versionMatch[1];
-                const majorVersion = parseInt(version.split('.')[0]);
-                const minorVersion = parseInt(version.split('.')[1]);
+                const versionParts = versionMatch[1].split('.').map(part => parseInt(part, 10));
 
-                if (majorVersion === 10 && minorVersion >= 22000) {
-                    windowsVersion = 'Windows 11';
-                } else if (majorVersion === 10) {
-                    windowsVersion = 'Windows 10';
-                } else if (majorVersion === 6 && minorVersion === 3) {
-                    windowsVersion = 'Windows 8.1';
-                } else if (majorVersion === 6 && minorVersion === 2) {
-                    windowsVersion = 'Windows 8';
-                } else if (majorVersion === 6 && minorVersion === 1) {
-                    windowsVersion = 'Windows 7';
-                } else {
-                    windowsVersion = `Windows ${majorVersion}`;
+                // Убеждаемся, что у нас есть хотя бы major и minor версии
+                if (versionParts.length >= 2 && !isNaN(versionParts[0]) && !isNaN(versionParts[1])) {
+                    const majorVersion = versionParts[0];
+                    const minorVersion = versionParts[1];
+
+                    if (majorVersion === 10 && minorVersion >= 22000) {
+                        windowsVersion = 'Windows 11';
+                    } else if (majorVersion === 10) {
+                        windowsVersion = 'Windows 10';
+                    } else if (majorVersion === 6 && minorVersion === 3) {
+                        windowsVersion = 'Windows 8.1';
+                    } else if (majorVersion === 6 && minorVersion === 2) {
+                        windowsVersion = 'Windows 8';
+                    } else if (majorVersion === 6 && minorVersion === 1) {
+                        windowsVersion = 'Windows 7';
+                    } else {
+                        windowsVersion = `Windows ${majorVersion}`;
+                    }
                 }
             }
         } catch (error) {

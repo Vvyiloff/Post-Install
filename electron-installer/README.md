@@ -1,6 +1,6 @@
 # 🚀 Установщик программ
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/program-installer/releases)
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/yourusername/program-installer/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)](https://electronjs.org/)
 
@@ -39,8 +39,8 @@
 ### 🚀 Рекомендуемый способ
 Скачайте готовый установщик из [Releases](https://github.com/yourusername/program-installer/releases):
 
-- **Установщик программ v1.0.0 Setup.exe** - Полный установщик с ярлыками
-- **Установщик программ v1.0.0.zip** - Портативная версия
+- **Установщик программ v1.0.1 Setup.exe** - Полный установщик с ярлыками
+- **Установщик программ v1.0.1.zip** - Портативная версия
 
 ### 📦 Ручная сборка
 ```bash
