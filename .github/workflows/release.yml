@@ -32,6 +32,8 @@ jobs:
           npm ci
       
       - name: Build Electron app
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: |
           cd electron
           npm run build
