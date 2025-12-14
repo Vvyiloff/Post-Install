@@ -120,33 +120,31 @@ jobs:
       - name: Create Python archive
         run: |
           $version = "${{ steps.get_version.outputs.version }}"
-          $filesToArchive = @()
           
-          # Add the EXE if it exists
-          if (Test-Path "dist-python/Post-Install-Python.exe") {
-            $filesToArchive += "dist-python/Post-Install-Python.exe"
-          } else {
-            Write-Host "WARNING: dist-python/Post-Install-Python.exe not found — skipping"
-          }
-          
-          # Optional files (only add if present)
-          foreach ($f in @("shared/packages.json", "README.md", "LICENSE")) {
-            if (Test-Path $f) {
-              $filesToArchive += $f
-              Write-Host "Adding $f to archive"
-            } else {
-              Write-Host "WARNING: $f not found — skipping"
-            }
-          }
-          
-          if ($filesToArchive.Count -gt 0) {
-            Write-Host "Archiving files: $($filesToArchive -join ', ')"
-            Compress-Archive -Path $filesToArchive -DestinationPath "Post-Install-Python-v$version.zip" -Force
-            Write-Host "Archive created successfully: Post-Install-Python-v$version.zip"
-          } else {
-            Write-Host "ERROR: No files found to archive"
+          if (-not (Test-Path "dist-python/Post-Install-Python.exe")) {
+            Write-Host "ERROR: dist-python/Post-Install-Python.exe not found"
             exit 1
           }
+          
+          $filesToArchive = @("dist-python/Post-Install-Python.exe")
+          
+          # Optional files (only add if present)
+          if (Test-Path "shared/packages.json") {
+            $filesToArchive += "shared/packages.json"
+            Write-Host "Adding shared/packages.json to archive"
+          }
+          if (Test-Path "README.md") {
+            $filesToArchive += "README.md"
+            Write-Host "Adding README.md to archive"
+          }
+          if (Test-Path "LICENSE") {
+            $filesToArchive += "LICENSE"
+            Write-Host "Adding LICENSE to archive"
+          }
+          
+          Write-Host "Creating archive with files: $($filesToArchive -join ', ')"
+          Compress-Archive -Path $filesToArchive -DestinationPath "Post-Install-Python-v$version.zip" -Force
+          Write-Host "Archive created successfully: Post-Install-Python-v$version.zip"
       
       - name: Upload Python artifacts
         uses: actions/upload-artifact@v4

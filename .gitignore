@@ -94,3 +94,4 @@ installer.log
 electron-installer/
 software_installer.py
 packages.json
+!shared/packages.json

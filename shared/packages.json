@@ -1,0 +1,103 @@
+[
+    {
+        "name": "Steam",
+        "id": "Valve.Steam",
+        "group": "Игры"
+    },
+    {
+        "name": "Epic Games Launcher",
+        "id": "EpicGames.EpicGamesLauncher",
+        "group": "Игры"
+    },
+    {
+        "name": "Ubisoft Connect",
+        "id": "Ubisoft.Connect",
+        "group": "Игры"
+    },
+    {
+        "name": "VALORANT (EU)",
+        "id": "RiotGames.Valorant.EU",
+        "group": "Игры",
+        "reboot": true
+    },
+    {
+        "name": "Visual Studio Code",
+        "id": "Microsoft.VisualStudioCode",
+        "group": "Разработка"
+    },
+    {
+        "name": "Git",
+        "id": "Git.Git",
+        "group": "Разработка"
+    },
+    {
+        "name": "Cursor",
+        "id": "Anysphere.Cursor",
+        "group": "Разработка"
+    },
+    {
+        "name": "Termius",
+        "id": "Termius.Termius",
+        "group": "Разработка"
+    },
+    {
+        "name": "Unity Hub",
+        "id": "Unity.UnityHub",
+        "group": "Разработка"
+    },
+    {
+        "name": "Google Chrome",
+        "id": "Google.Chrome",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "Telegram",
+        "id": "Telegram.TelegramDesktop",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "7-Zip",
+        "id": "7zip.7zip",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "VLC",
+        "id": "VideoLAN.VLC",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "Paint.NET",
+        "id": "dotPDN.PaintDotNet",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "Yandex.Disk",
+        "id": "Yandex.Disk",
+        "group": "Базовый софт"
+    },
+    {
+        "name": "OBS Studio",
+        "id": "OBSProject.OBSStudio",
+        "group": "Стриминг"
+    },
+    {
+        "name": "Discord",
+        "id": "Discord.Discord",
+        "group": "Коммуникация"
+    },
+    {
+        "name": "Spotify",
+        "id": "Spotify.Spotify",
+        "group": "Музыка"
+    },
+    {
+        "name": "Blender",
+        "id": "BlenderFoundation.Blender",
+        "group": "3D-графика"
+    },
+    {
+        "name": "GIMP",
+        "id": "GIMP.GIMP.3",
+        "group": "Графика"
+    }
+]
