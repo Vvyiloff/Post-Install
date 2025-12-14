@@ -57,12 +57,15 @@ jobs:
           if (Test-Path "releases/win-unpacked") {
             $unpackedDir = "releases/win-unpacked"
             Write-Host "Found win-unpacked directory"
-          } elseif (Test-Path "releases/Установщик программ-win32-x64") {
-            $unpackedDir = "releases/Установщик программ-win32-x64"
-            Write-Host "Found Установщик программ-win32-x64 directory"
+          } elseif (Test-Path "releases/Post-Install-win32-x64") {
+            $unpackedDir = "releases/Post-Install-win32-x64"
+            Write-Host "Found Post-Install-win32-x64 directory"
           } else {
             Write-Host "ERROR: No unpacked directory found in releases/"
-            Get-ChildItem -Path releases -Recurse -ErrorAction SilentlyContinue | Select-Object FullName
+            Write-Host "Looking for any directories in releases/:"
+            Get-ChildItem -Path releases -Directory -ErrorAction SilentlyContinue | Select-Object Name
+            Write-Host "All files in releases/:"
+            Get-ChildItem -Path releases -ErrorAction SilentlyContinue | Select-Object Name
             exit 1
           }
           

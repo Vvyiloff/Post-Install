@@ -29,7 +29,7 @@
   },
   "build": {
     "appId": "com.electron.installer",
-    "productName": "Установщик программ",
+    "productName": "Post-Install",
     "directories": {
       "output": "releases"
     },
@@ -52,8 +52,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Установщик программ",
-      "artifactName": "Установщик программ ${version} Setup.exe",
+      "shortcutName": "Post-Install",
+      "artifactName": "Post-Install ${version} Setup.exe",
       "deleteAppDataOnUninstall": false
     }
   }
