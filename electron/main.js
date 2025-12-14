@@ -302,20 +302,23 @@ ipcMain.handle('set-dns', async () => {
         const dns1 = '176.99.11.77';
         const dns2 = '80.78.247.254';
 
-        // Setting primary DNS
+        // Установка первичного DNS
         try {
-            await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'static', dns1]);
+            console.log(`Setting primary DNS: netsh interface ip set dns name=${interface} static ${dns1}`);
+            await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'static', dns1]);
             primaryDnsSet = true;
         } catch (error) {
             return { success: false, message: `Не удалось установить первичный DNS: ${error.message}` };
         }
 
-        // Setting secondary DNS
+        // Установка вторичного DNS
         try {
-            await runNetshCommand(['interface', 'ip', 'add', 'dns', `name="${interface}"`, dns2, 'index=2']);
+            console.log(`Setting secondary DNS: netsh interface ip add dns name=${interface} ${dns2} index=2`);
+            await runNetshCommand(['interface', 'ip', 'add', 'dns', 'name=' + interface, dns2, 'index=2']);
         } catch (error) {
-            // If secondary DNS fails but primary is set, keep system working with at least one DNS
-            console.warn(`Failed to set secondary DNS, but primary DNS is configured: ${error.message}`);
+            // Если вторичный DNS не удалось установить, но первичный установлен,
+            // оставляем систему в рабочем состоянии с хотя бы одним DNS
+            console.warn(`Не удалось установить вторичный DNS, но первичный DNS настроен: ${error.message}`);
         }
 
         return { success: true, message: `DNS успешно настроен для интерфейса "${interface}"` };
@@ -326,7 +329,7 @@ ipcMain.handle('set-dns', async () => {
             try {
                 const interface = await getActiveInterface();
                 if (interface) {
-                    await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
+                    await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'dhcp']);
                     console.log('DNS rollback performed due to error');
                 }
             } catch (rollbackError) {
@@ -345,7 +348,7 @@ ipcMain.handle('rollback-dns', async () => {
             return { success: false, message: 'Сетевой интерфейс не найден' };
         }
 
-        await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
+        await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'dhcp']);
 
         return { success: true, message: `DNS сброшен в автоматический режим для интерфейса "${interface}"` };
     } catch (error) {
