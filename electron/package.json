@@ -1,6 +1,6 @@
 {
   "name": "electron-installer",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "Beautiful software installer built with Electron",
   "main": "main.js",
   "scripts": {
