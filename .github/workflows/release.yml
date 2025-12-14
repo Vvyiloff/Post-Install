@@ -17,6 +17,8 @@ on:
 jobs:
   build-electron:
     runs-on: windows-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
@@ -95,6 +97,8 @@ jobs:
   
   build-python:
     runs-on: windows-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
@@ -190,6 +194,8 @@ jobs:
   create-release:
     needs: [build-electron, build-python]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Download Electron artifacts
