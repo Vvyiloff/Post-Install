@@ -33,9 +33,12 @@ jobs:
       
       - name: Build Electron app
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          WIN_CSC_LINK: ""
+          WIN_CSC_KEY_PASSWORD: ""
         run: |
           cd electron
+          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           npm run build
       
       - name: Create Electron archive
