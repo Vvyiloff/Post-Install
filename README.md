@@ -1,75 +1,75 @@
-# 🚀 Post-Install - Установщик программ
+# 🚀 Software Installer
 
-[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/Vvyiloff/Post-Install/releases)
+[![Version](https://img.shields.io/badge/version-2.0.5-blue.svg)](https://github.com/Vvyiloff/Post-Install/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](https://www.microsoft.com/windows)
 
-Универсальный установщик программ для Windows с поддержкой автоматического обновления через GitHub. Доступны две версии: **Python** (консольная) и **Electron** (графический интерфейс).
+Universal software installer for Windows with automatic update support via GitHub. Available in two versions: **Python** (console) and **Electron** (GUI).
 
-## 📋 Содержание
+## 📋 Table of Contents
 
-- [Особенности](#-особенности)
-- [Версии](#-версии)
-- [Установка](#-установка)
-- [Использование](#-использование)
-- [Структура проекта](#-структура-проекта)
-- [Создание релиза](#-создание-релиза)
-- [Разработка](#-разработка)
-- [Лицензия](#-лицензия)
+- [Features](#-features)
+- [Versions](#-versions)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Project Structure](#-project-structure)
+- [Creating Releases](#-creating-releases)
+- [Development](#-development)
+- [License](#-license)
 
-## ✨ Особенности
+## ✨ Features
 
-- ✅ **Установка программ через winget** - Использует официальный Windows Package Manager
-- ✅ **Автоматическое обновление** - Загружает список программ из GitHub
-- ✅ **Два интерфейса** - Python (консоль) и Electron (GUI)
-- ✅ **Проверка установленных программ** - Автоматически определяет уже установленное ПО
-- ✅ **Профили установки** - Быстрый выбор категорий (Игры, Разработка, Базовый софт)
-- ✅ **Системные функции** - Управление DNS, информация о системе
-- ✅ **Подробное логирование** - История всех операций с фильтрацией
+- ✅ **Software installation via winget** - Uses official Windows Package Manager
+- ✅ **Automatic updates** - Downloads software list from GitHub
+- ✅ **Two interfaces** - Python (console) and Electron (GUI)
+- ✅ **Installed software check** - Automatically detects already installed software
+- ✅ **Installation profiles** - Quick category selection (Games, Development, Basic software)
+- ✅ **System functions** - DNS management, system information
+- ✅ **Detailed logging** - History of all operations with filtering
 
-## 🎯 Версии
+## 🎯 Versions
 
-### 🐍 Python версия (`python/`)
-Консольное приложение с простым интерфейсом.
+### 🐍 Python version (`python/`)
+Console application with simple interface.
 
-**Особенности:**
-- Быстрый запуск
-- Минимальные зависимости
-- Легко кастомизируется
+**Features:**
+- Fast startup
+- Minimal dependencies
+- Easily customizable
 
-📖 [Документация Python версии](python/README.md)
+📖 [Python version documentation](python/README.md)
 
-### ⚡ Electron версия (`electron/`)
-Современное приложение с графическим интерфейсом.
+### ⚡ Electron version (`electron/`)
+Modern application with graphical interface.
 
-**Особенности:**
-- 🎨 Красивый Material Design интерфейс
-- 🌓 Темная и светлая тема
-- 📊 Визуальный прогресс установки
-- 🔍 Поиск и фильтрация программ
-- 📋 Детальные логи с экспортом
+**Features:**
+- 🎨 Beautiful Material Design interface
+- 🌓 Dark and light themes
+- 📊 Visual installation progress
+- 🔍 Search and program filtering
+- 📋 Detailed logs with export
 
-📖 [Документация Electron версии](electron/README.md)
+📖 [Electron version documentation](electron/README.md)
 
-## 📥 Установка
+## 📥 Installation
 
-### Вариант 1: Готовые релизы (Рекомендуется)
+### Option 1: Ready-made releases (Recommended)
 
-1. Перейдите в [Releases](https://github.com/Vvyiloff/Post-Install/releases)
-2. Скачайте последнюю версию:
-   - **Python:** `Post-Install-Python-v1.0.1.zip`
-   - **Electron:** `Post-Install-Electron-v1.0.1-Setup.exe` или `Post-Install-Electron-v1.0.1.zip`
+1. Go to [Releases](https://github.com/Vvyiloff/Post-Install/releases)
+2. Download the latest version:
+   - **Python:** `Post-Install-Python-v2.0.5.zip`
+   - **Electron:** `Software-Installer-2.0.5-Setup.exe` or `Software-Installer-Electron-v2.0.5.zip`
 
-### Вариант 2: Из исходников
+### Option 2: From source code
 
-#### Python версия:
+#### Python version:
 ```bash
 git clone https://github.com/Vvyiloff/Post-Install.git
 cd Post-Install/python
 python software_installer.py
 ```
 
-#### Electron версия:
+#### Electron version:
 ```bash
 git clone https://github.com/Vvyiloff/Post-Install.git
 cd Post-Install/electron
@@ -107,29 +107,29 @@ npm start
 - **Система:** Управление DNS и системная информация
 - **Логи:** Просмотр истории операций
 
-## 📁 Структура проекта
+## 📁 Project Structure
 
 ```
-Post-Install/
-├── README.md                    # Этот файл
-├── LICENSE                      # Лицензия MIT
-├── .gitignore                   # Игнорируемые файлы
-├── CHANGELOG.md                 # История изменений
+Software-Installer/
+├── README.md                    # This file
+├── LICENSE                      # MIT License
+├── .gitignore                   # Ignored files
+├── CHANGELOG.md                 # Changelog
 │
-├── shared/                      # Общие файлы
-│   └── packages.json           # Список программ
+├── shared/                      # Shared files
+│   └── packages.json           # Software list
 │
-├── python/                      # Python версия
-│   ├── software_installer.py   # Основной файл
-│   └── README.md               # Документация
+├── python/                      # Python version
+│   ├── software_installer.py   # Main file
+│   └── README.md               # Documentation
 │
-└── electron/                    # Electron версия
-    ├── main.js                 # Главный процесс
-    ├── preload.js              # IPC мост
-    ├── package.json            # Конфигурация
-    ├── src/                    # Исходники интерфейса
-    ├── assets/                 # Ресурсы
-    └── README.md               # Документация
+└── electron/                    # Electron version
+    ├── main.js                 # Main process
+    ├── preload.js              # IPC bridge
+    ├── package.json            # Configuration
+    ├── src/                    # Interface sources
+    ├── assets/                 # Resources
+    └── README.md               # Documentation
 ```
 
 ## 🚀 Создание релиза
@@ -193,26 +193,26 @@ pyinstaller --onefile --windowed --name "Post-Install-Python" software_installer
 - `3D-графика`
 - `Графика`
 
-## 📄 Лицензия
+## 📄 License
 
-Этот проект распространяется под лицензией MIT. См. файл [LICENSE](LICENSE) для подробностей.
+This project is distributed under the MIT license. See the [LICENSE](LICENSE) file for details.
 
-## 🤝 Вклад в проект
+## 🤝 Contributing
 
-1. Fork репозиторий
-2. Создайте ветку для вашей фичи (`git checkout -b feature/AmazingFeature`)
-3. Commit изменения (`git commit -m 'Add some AmazingFeature'`)
-4. Push в ветку (`git push origin feature/AmazingFeature`)
-5. Создайте Pull Request
+1. Fork the repository
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Create a Pull Request
 
-## 📞 Контакты
+## 📞 Contacts
 
-- **Автор:** Vvyil
+- **Author:** Vvyil
 - **GitHub:** [Vvyiloff](https://github.com/Vvyiloff)
-- **Репозиторий:** [Post-Install](https://github.com/Vvyiloff/Post-Install)
+- **Repository:** [Software-Installer](https://github.com/Vvyiloff/Post-Install)
 
 ---
 
-⭐ **Если проект оказался полезным, поставьте звезду!** ⭐
+⭐ **If the project was helpful, give it a star!** ⭐
 
-Создано с ❤️ для Windows пользователей.
+Created with ❤️ for Windows users.

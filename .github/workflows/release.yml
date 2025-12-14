@@ -1,5 +1,8 @@
 name: Build and Release
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -57,9 +60,9 @@ jobs:
           if (Test-Path "releases/win-unpacked") {
             $unpackedDir = "releases/win-unpacked"
             Write-Host "Found win-unpacked directory"
-          } elseif (Test-Path "releases/Post-Install-win32-x64") {
-            $unpackedDir = "releases/Post-Install-win32-x64"
-            Write-Host "Found Post-Install-win32-x64 directory"
+          } elseif (Test-Path "releases/Software-Installer-win32-x64") {
+            $unpackedDir = "releases/Software-Installer-win32-x64"
+            Write-Host "Found Software-Installer-win32-x64 directory"
           } else {
             Write-Host "ERROR: No unpacked directory found in releases/"
             Write-Host "Looking for any directories in releases/:"
@@ -70,8 +73,8 @@ jobs:
           }
           
           # Create archive from unpacked directory
-          Compress-Archive -Path $unpackedDir -DestinationPath "releases/Post-Install-Electron-v$version.zip" -Force
-          Write-Host "Archive created: Post-Install-Electron-v$version.zip"
+          Compress-Archive -Path $unpackedDir -DestinationPath "releases/Software-Installer-Electron-v$version.zip" -Force
+          Write-Host "Archive created: Software-Installer-Electron-v$version.zip"
           
           # Check for setup exe
           $setupExe = Get-ChildItem -Path releases -Filter "*Setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -216,21 +219,21 @@ jobs:
           name: Release v${{ steps.get_version.outputs.version }}
           body: |
             ## 🎉 Release v${{ steps.get_version.outputs.version }}
-            
-            ### 📦 Скачать
-            
-            #### ⚡ Electron версия (GUI)
-            - **Установщик:** `Post-Install-Electron-v${{ steps.get_version.outputs.version }}-Setup.exe`
-            - **Портативная версия:** `Post-Install-Electron-v${{ steps.get_version.outputs.version }}.zip`
-            
-            #### 🐍 Python версия (Console)
-            - **Архив:** `Post-Install-Python-v${{ steps.get_version.outputs.version }}.zip`
-            
-            ### 📋 Изменения
-            См. [Commits](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
-            
+
+            ### 📦 Downloads
+
+            #### ⚡ Electron version (GUI)
+            - **Installer:** `Software-Installer-${{ steps.get_version.outputs.version }}-Setup.exe`
+            - **Portable version:** `Software-Installer-Electron-v${{ steps.get_version.outputs.version }}.zip`
+
+            #### 🐍 Python version (Console)
+            - **Archive:** `Post-Install-Python-v${{ steps.get_version.outputs.version }}.zip`
+
+            ### 📋 Changes
+            See [Commits](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
+
             ---
-            **Спасибо за использование Post-Install!** ⭐
+            **Thank you for using Software Installer!** ⭐
           draft: false
           prerelease: false
         env:
