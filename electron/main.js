@@ -294,6 +294,12 @@ ipcMain.handle('set-dns', async () => {
     let primaryDnsSet = false;
 
     try {
+        // Проверяем права администратора
+        const isAdmin = await checkAdminRights();
+        if (!isAdmin) {
+            return { success: false, message: 'Для изменения DNS настроек требуются права администратора. Запустите приложение от имени администратора.' };
+        }
+
         const interface = await getActiveInterface();
         if (!interface) {
             return { success: false, message: 'Сетевой интерфейс не найден' };
@@ -304,8 +310,8 @@ ipcMain.handle('set-dns', async () => {
 
         // Установка первичного DNS
         try {
-            console.log(`Setting primary DNS: netsh interface ip set dns name=${interface} static ${dns1}`);
-            await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'static', dns1]);
+            console.log(`Setting primary DNS: netsh interface ip set dns name="${interface}" static ${dns1}`);
+            await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'static', dns1]);
             primaryDnsSet = true;
         } catch (error) {
             return { success: false, message: `Не удалось установить первичный DNS: ${error.message}` };
@@ -313,8 +319,8 @@ ipcMain.handle('set-dns', async () => {
 
         // Установка вторичного DNS
         try {
-            console.log(`Setting secondary DNS: netsh interface ip add dns name=${interface} ${dns2} index=2`);
-            await runNetshCommand(['interface', 'ip', 'add', 'dns', 'name=' + interface, dns2, 'index=2']);
+            console.log(`Setting secondary DNS: netsh interface ip add dns name="${interface}" ${dns2} index=2`);
+            await runNetshCommand(['interface', 'ip', 'add', 'dns', `name="${interface}"`, dns2, 'index=2']);
         } catch (error) {
             // Если вторичный DNS не удалось установить, но первичный установлен,
             // оставляем систему в рабочем состоянии с хотя бы одним DNS
@@ -329,7 +335,7 @@ ipcMain.handle('set-dns', async () => {
             try {
                 const interface = await getActiveInterface();
                 if (interface) {
-                    await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'dhcp']);
+                    await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
                     console.log('DNS rollback performed due to error');
                 }
             } catch (rollbackError) {
@@ -343,12 +349,18 @@ ipcMain.handle('set-dns', async () => {
 
 ipcMain.handle('rollback-dns', async () => {
     try {
+        // Проверяем права администратора
+        const isAdmin = await checkAdminRights();
+        if (!isAdmin) {
+            return { success: false, message: 'Для изменения DNS настроек требуются права администратора. Запустите приложение от имени администратора.' };
+        }
+
         const interface = await getActiveInterface();
         if (!interface) {
             return { success: false, message: 'Сетевой интерфейс не найден' };
         }
 
-        await runNetshCommand(['interface', 'ip', 'set', 'dns', 'name=' + interface, 'dhcp']);
+        await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
 
         return { success: true, message: `DNS сброшен в автоматический режим для интерфейса "${interface}"` };
     } catch (error) {
@@ -483,6 +495,52 @@ function runNetshCommand(args) {
                 clearTimeout(timeout);
                 resolved = true;
                 reject(error);
+            }
+        });
+    });
+}
+
+async function checkAdminRights() {
+    return new Promise((resolve) => {
+        // Проверяем, запущено ли приложение от имени администратора
+        const whoami = spawn('whoami', ['/groups'], {
+            stdio: 'pipe',
+            shell: true,
+            encoding: 'cp866'
+        });
+
+        let output = '';
+        let resolved = false;
+
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                whoami.kill();
+                resolve(false);
+                resolved = true;
+            }
+        }, 5000);
+
+        whoami.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        whoami.on('close', (code) => {
+            if (resolved) return;
+            clearTimeout(timeout);
+            resolved = true;
+
+            // Ищем группу "Администраторы" или "Administrators" в выводе
+            const isAdmin = output.includes('Администраторы') ||
+                           output.includes('Administrators') ||
+                           output.includes('S-1-5-32-544'); // SID группы администраторов
+            resolve(isAdmin);
+        });
+
+        whoami.on('error', () => {
+            if (!resolved) {
+                clearTimeout(timeout);
+                resolved = true;
+                resolve(false);
             }
         });
     });
