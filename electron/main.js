@@ -355,10 +355,10 @@ ipcMain.handle('rollback-dns', async () => {
 
 async function getActiveInterface() {
     return new Promise((resolve) => {
-        // Используем PowerShell для корректного выполнения с UTF-8
+        // Используем PowerShell Get-NetAdapter для надежного получения интерфейсов
         const powershell = spawn('powershell', [
             '-Command',
-            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $output = & netsh interface show interface 2>$null; Write-Output $output"
+            "chcp 65001 > $null; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1 -ExpandProperty Name"
         ], {
             stdio: 'pipe',
             shell: true
@@ -377,7 +377,7 @@ async function getActiveInterface() {
         }, 10000); // 10 секунд таймаут
 
         powershell.stdout.on('data', (data) => {
-            output += data.toString('utf8');
+            output += data.toString('utf8').trim();
         });
 
         powershell.on('close', (code) => {
@@ -386,55 +386,25 @@ async function getActiveInterface() {
             resolved = true;
 
             if (code !== 0) {
-                console.error('PowerShell netsh command failed with code:', code);
+                console.error('PowerShell Get-NetAdapter command failed with code:', code);
                 resolve(null);
                 return;
             }
 
-            const lines = output.split('\n');
-            let activeInterface = null;
+            const interfaceName = output.trim();
+            console.log(`PowerShell Get-NetAdapter result: "${interfaceName}"`);
 
-            console.log('Parsing netsh interface output via PowerShell...');
-
-            // Пропускаем заголовок и пустые строки
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
-
-                // Пропускаем заголовок и разделители
-                if (line.includes('Состояние адм.') ||
-                    line.includes('Admin State') ||
-                    line.includes('---') ||
-                    line === '') {
-                    continue;
-                }
-
-                // Парсим строку интерфейса: "Разрешен       Подключен      Выделенный       Ethernet"
-                const parts = line.split(/\s+/);
-                if (parts.length >= 4) {
-                    const adminState = parts[0]; // Разрешен/Disabled
-                    const operationalState = parts[1]; // Подключен/Connected/Отключен/Disconnected
-                    const interfaceType = parts[2]; // Выделенный/Dedicated
-                    const interfaceName = parts.slice(3).join(' ').trim(); // Название интерфейса
-
-                    console.log(`Interface: "${interfaceName}" - Admin: ${adminState}, Operational: ${operationalState}`);
-
-                    // Ищем интерфейс который разрешен и подключен
-                    if ((adminState === 'Разрешен' || adminState === 'Enabled') &&
-                        (operationalState === 'Подключен' || operationalState === 'Connected')) {
-
-                        activeInterface = interfaceName;
-                        console.log(`Found active interface: "${activeInterface}"`);
-                        break; // Берем первый найденный активный интерфейс
-                    }
-                }
+            if (interfaceName && interfaceName !== '') {
+                console.log(`Found active interface: "${interfaceName}"`);
+                resolve(interfaceName);
+            } else {
+                console.log('No active interface found');
+                resolve(null);
             }
-
-            console.log(`Selected active interface: "${activeInterface || 'none'}"`);
-            resolve(activeInterface);
         });
 
         powershell.on('error', (error) => {
-            console.error('PowerShell command error:', error);
+            console.error('PowerShell Get-NetAdapter command error:', error);
             if (!resolved) {
                 clearTimeout(timeout);
                 resolved = true;
