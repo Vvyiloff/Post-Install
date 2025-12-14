@@ -409,10 +409,17 @@ async function getActiveInterface() {
                 // Парсим строку: "4          25        1500  connected     Ethernet"
                 const parts = line.split(/\s+/);
                 if (parts.length >= 5) {
+                    const index = parseInt(parts[0]); // Индекс интерфейса
                     const status = parts[3]; // connected/disconnected
                     const interfaceName = parts.slice(4).join(' ').trim(); // Название интерфейса
 
-                    console.log(`Interface: "${interfaceName}" - Status: ${status}`);
+                    console.log(`Interface: "${interfaceName}" - Index: ${index}, Status: ${status}`);
+
+                    // Пропускаем loopback интерфейсы (индекс 1 или имя содержит "Loopback")
+                    if (index === 1 || interfaceName.toLowerCase().includes('loopback')) {
+                        console.log(`Skipping loopback interface: "${interfaceName}"`);
+                        continue;
+                    }
 
                     // Ищем подключенный интерфейс
                     if (status === 'connected') {
