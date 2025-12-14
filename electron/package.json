@@ -44,6 +44,7 @@
       "target": "nsis",
       "sign": false,
       "verifyUpdateCodeSignature": false,
+      "signDlls": false,
       "signingHashAlgorithms": []
     },
     "nsis": {

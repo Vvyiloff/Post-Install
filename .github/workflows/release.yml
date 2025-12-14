@@ -41,7 +41,7 @@ jobs:
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           $env:WIN_CSC_LINK = ""
           $env:WIN_CSC_KEY_PASSWORD = ""
-          npm run build -- --config.win.sign=false --config.win.verifyUpdateCodeSignature=false
+          npm run build -- --win --x64 --publish never --debug --config.win.sign=false --config.win.verifyUpdateCodeSignature=false --config.win.signDlls=false
       
       - name: Create Electron archive
         run: |
@@ -80,18 +80,35 @@ jobs:
       - name: Build Python executable
         run: |
           Write-Host "Current directory: $(Get-Location)"
-          Write-Host "Checking for python/software_installer.py..."
+          Write-Host "Listing all files in root:"
+          Get-ChildItem -Path . -ErrorAction SilentlyContinue | Select-Object Name
+          Write-Host "Checking for software_installer.py..."
+          $pythonFile = $null
           if (Test-Path "python/software_installer.py") {
-            Write-Host "File found! Building..."
-            cd python
-            pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath ../dist-python software_installer.py
+            Write-Host "File found in python/ directory!"
+            $pythonFile = "python/software_installer.py"
+            $workDir = "python"
+          } elseif (Test-Path "software_installer.py") {
+            Write-Host "File found in root directory!"
+            $pythonFile = "software_installer.py"
+            $workDir = "."
           } else {
-            Write-Host "ERROR: software_installer.py not found in python/ directory"
-            Write-Host "Files in python/:"
+            Write-Host "ERROR: software_installer.py not found"
+            Write-Host "Files in root:"
+            Get-ChildItem -Path . -ErrorAction SilentlyContinue | Select-Object Name
+            Write-Host "Files in python/ (if exists):"
             Get-ChildItem -Path python -ErrorAction SilentlyContinue | Select-Object Name
             Write-Host "All .py files:"
             Get-ChildItem -Recurse -Filter "*.py" -ErrorAction SilentlyContinue | Select-Object FullName
             exit 1
+          }
+          Write-Host "Building from: $pythonFile"
+          cd $workDir
+          if ($workDir -eq ".") {
+            New-Item -ItemType Directory -Force -Path "dist-python" | Out-Null
+            pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath dist-python software_installer.py
+          } else {
+            pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath ../dist-python software_installer.py
           }
       
       - name: Get version from tag
