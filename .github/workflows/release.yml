@@ -1,0 +1,67 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-electron:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: electron-installer/package-lock.json
+      
+      - name: Install dependencies
+        run: |
+          cd electron-installer
+          npm ci
+      
+      - name: Build Electron app
+        run: |
+          cd electron-installer
+          npm run build
+      
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: electron-installer
+          path: electron-installer/releases/*.exe
+          retention-days: 30
+      
+      - name: Get version from package.json
+        id: get_version
+        run: |
+          cd electron-installer
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: electron-installer/releases/*.exe
+          name: Release ${{ steps.get_version.outputs.version }}
+          body: |
+            ## 🎉 Release ${{ steps.get_version.outputs.version }}
+            
+            ### 📦 Скачать
+            - **Установщик программ:** См. файлы ниже
+            
+            ### 📋 Изменения
+            См. [Commits](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
+            
+            ---
+            **Спасибо за использование Post-Install!** ⭐
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

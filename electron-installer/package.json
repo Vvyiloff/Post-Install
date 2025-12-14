@@ -15,8 +15,12 @@
     "winget",
     "windows"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Vvyil",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vvyiloff/Post-Install.git"
+  },
   "type": "commonjs",
   "devDependencies": {
     "electron": "^39.2.7",

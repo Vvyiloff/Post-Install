@@ -551,6 +551,29 @@ ipcMain.handle('check-multiple-programs-status', async (event, programIds) => {
     return results;
 });
 
+// Обработчики для управления окном
+ipcMain.handle('window-minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.minimize();
+    }
+});
+
+ipcMain.handle('window-maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        } else {
+            mainWindow.maximize();
+        }
+    }
+});
+
+ipcMain.handle('window-close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.close();
+    }
+});
+
 // Вспомогательная функция для проверки установки (дублирование для удобства)
 async function checkPackageInstalled(packageId) {
     return new Promise((resolve) => {

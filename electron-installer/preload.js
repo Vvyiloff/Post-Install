@@ -119,33 +119,9 @@ contextBridge.exposeInMainWorld('utils', {
     },
 
     // Управление окном
-    minimizeWindow: () => {
-        const { BrowserWindow } = require('electron');
-        const focusedWindow = BrowserWindow.getFocusedWindow();
-        if (focusedWindow) {
-            focusedWindow.minimize();
-        }
-    },
-
-    maximizeWindow: () => {
-        const { BrowserWindow } = require('electron');
-        const focusedWindow = BrowserWindow.getFocusedWindow();
-        if (focusedWindow) {
-            if (focusedWindow.isMaximized()) {
-                focusedWindow.unmaximize();
-            } else {
-                focusedWindow.maximize();
-            }
-        }
-    },
-
-    closeWindow: () => {
-        const { BrowserWindow } = require('electron');
-        const focusedWindow = BrowserWindow.getFocusedWindow();
-        if (focusedWindow) {
-            focusedWindow.close();
-        }
-    },
+    minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
+    maximizeWindow: () => ipcRenderer.invoke('window-maximize'),
+    closeWindow: () => ipcRenderer.invoke('window-close'),
 
     // Получение информации о системе
     getPlatform: () => process.platform,

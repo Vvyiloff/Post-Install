@@ -73,7 +73,7 @@
     {
         "name": "Yandex.Disk",
         "id": "Yandex.Disk",
-        "group": "Графика"
+        "group": "Базовый софт"
     },
     {
         "name": "OBS Studio",
@@ -92,7 +92,7 @@
     },
     {
         "name": "Blender",
-        "id": "ч",
+        "id": "BlenderFoundation.Blender",
         "group": "3D-графика"
     },
     {
