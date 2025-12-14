@@ -355,11 +355,13 @@ ipcMain.handle('rollback-dns', async () => {
 
 async function getActiveInterface() {
     return new Promise((resolve) => {
-        // Используем netsh interface show interface - более надежная команда
-        const netsh = spawn('netsh', ['interface', 'show', 'interface'], {
+        // Используем PowerShell для корректного выполнения с UTF-8
+        const powershell = spawn('powershell', [
+            '-Command',
+            "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $output = & netsh interface show interface 2>$null; Write-Output $output"
+        ], {
             stdio: 'pipe',
-            shell: true,
-            encoding: 'cp866' // Для корректного чтения русских символов
+            shell: true
         });
 
         let output = '';
@@ -368,23 +370,23 @@ async function getActiveInterface() {
         // Таймаут для предотвращения зависания
         const timeout = setTimeout(() => {
             if (!resolved) {
-                netsh.kill();
+                powershell.kill();
                 resolve(null);
                 resolved = true;
             }
         }, 10000); // 10 секунд таймаут
 
-        netsh.stdout.on('data', (data) => {
-            output += data.toString();
+        powershell.stdout.on('data', (data) => {
+            output += data.toString('utf8');
         });
 
-        netsh.on('close', (code) => {
+        powershell.on('close', (code) => {
             if (resolved) return;
             clearTimeout(timeout);
             resolved = true;
 
             if (code !== 0) {
-                console.error('netsh command failed with code:', code);
+                console.error('PowerShell netsh command failed with code:', code);
                 resolve(null);
                 return;
             }
@@ -392,7 +394,7 @@ async function getActiveInterface() {
             const lines = output.split('\n');
             let activeInterface = null;
 
-            console.log('Parsing netsh interface output...');
+            console.log('Parsing netsh interface output via PowerShell...');
 
             // Пропускаем заголовок и пустые строки
             for (let i = 0; i < lines.length; i++) {
@@ -431,8 +433,8 @@ async function getActiveInterface() {
             resolve(activeInterface);
         });
 
-        netsh.on('error', (error) => {
-            console.error('netsh command error:', error);
+        powershell.on('error', (error) => {
+            console.error('PowerShell command error:', error);
             if (!resolved) {
                 clearTimeout(timeout);
                 resolved = true;
