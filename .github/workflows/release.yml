@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.2)'
+        required: true
+        type: string
 
 jobs:
   build-electron:
@@ -11,49 +17,127 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: electron-installer/package-lock.json
+          cache-dependency-path: electron/package-lock.json
       
       - name: Install dependencies
         run: |
-          cd electron-installer
+          cd electron
           npm ci
       
       - name: Build Electron app
         run: |
-          cd electron-installer
+          cd electron
           npm run build
       
-      - name: Upload installer artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: electron-installer
-          path: electron-installer/releases/*.exe
-          retention-days: 30
+      - name: Create Electron archive
+        run: |
+          cd electron/releases
+          $version = (Get-Content ../package.json | ConvertFrom-Json).version
+          Compress-Archive -Path "Установщик программ-win32-x64" -DestinationPath "Post-Install-Electron-v$version.zip" -Force
+          if (Test-Path "Установщик программ $version Setup.exe") {
+            Copy-Item "Установщик программ $version Setup.exe" "Post-Install-Electron-v$version-Setup.exe"
+          }
       
-      - name: Get version from package.json
+      - name: Upload Electron artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-release
+          path: |
+            electron/releases/*.zip
+            electron/releases/*.exe
+          retention-days: 30
+  
+  build-python:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller
+      
+      - name: Build Python executable
+        run: |
+          cd python
+          pyinstaller --onefile --windowed --name "Post-Install-Python" --distpath ../dist-python software_installer.py
+      
+      - name: Get version from tag
         id: get_version
         run: |
-          cd electron-installer
-          $version = (Get-Content package.json | ConvertFrom-Json).version
+          $version = "${{ github.ref_name }}".Replace("v", "")
           echo "version=$version" >> $env:GITHUB_OUTPUT
+      
+      - name: Create Python archive
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          if (Test-Path "dist-python/Post-Install-Python.exe") {
+            Compress-Archive -Path "dist-python/Post-Install-Python.exe", "shared/packages.json", "README.md", "LICENSE" -DestinationPath "Post-Install-Python-v$version.zip" -Force
+          }
+      
+      - name: Upload Python artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-release
+          path: |
+            Post-Install-Python-*.zip
+            dist-python/*.exe
+          retention-days: 30
+  
+  create-release:
+    needs: [build-electron, build-python]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download Electron artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-release
+          path: ./artifacts/electron
+      
+      - name: Download Python artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-release
+          path: ./artifacts/python
+      
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: electron-installer/releases/*.exe
-          name: Release ${{ steps.get_version.outputs.version }}
+          files: |
+            artifacts/electron/*
+            artifacts/python/*
+          name: Release v${{ steps.get_version.outputs.version }}
           body: |
-            ## 🎉 Release ${{ steps.get_version.outputs.version }}
+            ## 🎉 Release v${{ steps.get_version.outputs.version }}
             
             ### 📦 Скачать
-            - **Установщик программ:** См. файлы ниже
+            
+            #### ⚡ Electron версия (GUI)
+            - **Установщик:** `Post-Install-Electron-v${{ steps.get_version.outputs.version }}-Setup.exe`
+            - **Портативная версия:** `Post-Install-Electron-v${{ steps.get_version.outputs.version }}.zip`
+            
+            #### 🐍 Python версия (Console)
+            - **Архив:** `Post-Install-Python-v${{ steps.get_version.outputs.version }}.zip`
             
             ### 📋 Изменения
             См. [Commits](https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }})
@@ -64,4 +148,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
