@@ -257,7 +257,7 @@ ipcMain.handle('check-dns', async () => {
     try {
         const interface = await getActiveInterface();
         if (!interface) {
-            return { success: false, message: 'Активный интерфейс не найден' };
+            return { success: false, message: 'Активный сетевой интерфейс не найден' };
         }
 
         return await new Promise((resolve) => {
@@ -277,7 +277,7 @@ ipcMain.handle('check-dns', async () => {
                 if (code === 0) {
                     resolve({ success: true, interface, dnsInfo: output });
                 } else {
-                    resolve({ success: false, message: 'Ошибка получения информации о DNS' });
+                    resolve({ success: false, message: 'Не удалось получить информацию о DNS' });
                 }
             });
 
@@ -286,7 +286,7 @@ ipcMain.handle('check-dns', async () => {
             });
         });
     } catch (error) {
-        return { success: false, message: `Ошибка: ${error.message}` };
+        return { success: false, message: `Error: ${error.message}` };
     }
 });
 
@@ -296,42 +296,41 @@ ipcMain.handle('set-dns', async () => {
     try {
         const interface = await getActiveInterface();
         if (!interface) {
-            return { success: false, message: 'Интерфейс не найден' };
+            return { success: false, message: 'Сетевой интерфейс не найден' };
         }
 
         const dns1 = '176.99.11.77';
         const dns2 = '80.78.247.254';
 
-        // Установка первичного DNS
+        // Setting primary DNS
         try {
             await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'static', dns1]);
             primaryDnsSet = true;
         } catch (error) {
-            return { success: false, message: `Ошибка установки первичного DNS: ${error.message}` };
+            return { success: false, message: `Не удалось установить первичный DNS: ${error.message}` };
         }
 
-        // Установка вторичного DNS
+        // Setting secondary DNS
         try {
             await runNetshCommand(['interface', 'ip', 'add', 'dns', `name="${interface}"`, dns2, 'index=2']);
         } catch (error) {
-            // Если вторичный DNS не удалось установить, но первичный установлен,
-            // оставляем систему в рабочем состоянии с хотя бы одним DNS
-            console.warn(`Не удалось установить вторичный DNS, но первичный DNS настроен: ${error.message}`);
+            // If secondary DNS fails but primary is set, keep system working with at least one DNS
+            console.warn(`Failed to set secondary DNS, but primary DNS is configured: ${error.message}`);
         }
 
-        return { success: true, message: 'DNS настроен успешно' };
+        return { success: true, message: `DNS успешно настроен для интерфейса "${interface}"` };
 
     } catch (error) {
-        // Если произошла непредвиденная ошибка, пытаемся откатить изменения
+        // If unexpected error occurs, try to rollback changes
         if (primaryDnsSet) {
             try {
                 const interface = await getActiveInterface();
                 if (interface) {
                     await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
-                    console.log('DNS откат выполнен из-за ошибки');
+                    console.log('DNS rollback performed due to error');
                 }
             } catch (rollbackError) {
-                console.error('Не удалось выполнить откат DNS:', rollbackError);
+                console.error('Failed to rollback DNS:', rollbackError);
             }
         }
 
@@ -343,12 +342,12 @@ ipcMain.handle('rollback-dns', async () => {
     try {
         const interface = await getActiveInterface();
         if (!interface) {
-            return { success: false, message: 'Интерфейс не найден' };
+            return { success: false, message: 'Сетевой интерфейс не найден' };
         }
 
         await runNetshCommand(['interface', 'ip', 'set', 'dns', `name="${interface}"`, 'dhcp']);
 
-        return { success: true, message: 'DNS возвращен в авто' };
+        return { success: true, message: `DNS сброшен в автоматический режим для интерфейса "${interface}"` };
     } catch (error) {
         return { success: false, message: `Ошибка отката DNS: ${error.message}` };
     }
@@ -385,16 +384,48 @@ async function getActiveInterface() {
 
             const lines = output.split('\n');
             let currentAdapter = null;
+            let bestAdapter = null;
+            let hasGateway = false;
 
-            for (const line of lines) {
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Начинаем новый адаптер
                 if (line.includes('Адаптер') || line.includes('Adapter')) {
+                    // Сохраняем предыдущий адаптер если у него был шлюз
+                    if (currentAdapter && hasGateway) {
+                        bestAdapter = currentAdapter;
+                    }
+
+                    // Начинаем новый адаптер
                     currentAdapter = line.split(':')[0].replace('Адаптер', '').replace('Adapter', '').trim();
-                } else if (currentAdapter && (line.includes('IPv4') || line.includes('IP Address'))) {
-                    resolve(currentAdapter);
-                    return;
+                    hasGateway = false;
+                }
+                // Проверяем на шлюз по умолчанию (основной критерий)
+                else if (currentAdapter && (line.includes('Шлюз') || line.includes('Gateway'))) {
+                    const nextLine = lines[i + 1]?.trim() || '';
+                    if (nextLine && nextLine !== '' && !nextLine.includes(':')) {
+                        hasGateway = true;
+                    }
+                }
+                // Также проверяем на IPv4 адрес как дополнительный критерий
+                else if (currentAdapter && (line.includes('IPv4') || line.includes('IP Address')) && !hasGateway) {
+                    const nextLine = lines[i + 1]?.trim() || '';
+                    if (nextLine && nextLine !== '' && !nextLine.includes(':')) {
+                        // Это адаптер с IP, но без шлюза - менее приоритетный
+                        if (!bestAdapter) {
+                            bestAdapter = currentAdapter;
+                        }
+                    }
                 }
             }
-            resolve(null);
+
+            // Проверяем последний адаптер
+            if (currentAdapter && hasGateway) {
+                bestAdapter = currentAdapter;
+            }
+
+            resolve(bestAdapter);
         });
 
         ipconfig.on('error', () => {

@@ -787,7 +787,7 @@ class AppInstaller {
             const result = await window.electronAPI.checkDns();
 
             if (result.success) {
-                document.getElementById('dnsInfo').textContent = result.dnsInfo || 'DNS информация получена';
+                document.getElementById('dnsInfo').textContent = result.dnsInfo || 'Информация о DNS получена';
                 this.addLog('DNS проверен успешно', 'success');
             } else {
                 document.getElementById('dnsInfo').textContent = result.message;
@@ -818,11 +818,14 @@ class AppInstaller {
             const result = await window.electronAPI.setDns();
 
             if (result.success) {
+                this.showNotification('DNS настроен успешно!', 'success');
                 this.addLog(result.message, 'success');
             } else {
+                this.showNotification('Ошибка настройки DNS', 'error');
                 this.addLog(result.message, 'error');
             }
         } catch (error) {
+            this.showNotification('Ошибка настройки DNS', 'error');
             this.addLog(`Ошибка настройки DNS: ${error.message}`, 'error');
         }
 
@@ -846,11 +849,14 @@ class AppInstaller {
             const result = await window.electronAPI.rollbackDns();
 
             if (result.success) {
+                this.showNotification('DNS возвращен в автоматический режим!', 'success');
                 this.addLog(result.message, 'success');
             } else {
+                this.showNotification('Ошибка отката DNS', 'error');
                 this.addLog(result.message, 'error');
             }
         } catch (error) {
+            this.showNotification('Ошибка отката DNS', 'error');
             this.addLog(`Ошибка отката DNS: ${error.message}`, 'error');
         }
 
