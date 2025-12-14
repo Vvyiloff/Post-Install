@@ -355,13 +355,11 @@ ipcMain.handle('rollback-dns', async () => {
 
 async function getActiveInterface() {
     return new Promise((resolve) => {
-        // Используем PowerShell для корректного чтения русскоязычного вывода
-        const powershell = spawn('powershell', [
-            '-Command',
-            "chcp 65001 > $null; $output = ipconfig; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Write-Output $output"
-        ], {
+        // Используем netsh interface show interface - более надежная команда
+        const netsh = spawn('netsh', ['interface', 'show', 'interface'], {
             stdio: 'pipe',
-            shell: true
+            shell: true,
+            encoding: 'cp866' // Для корректного чтения русских символов
         });
 
         let output = '';
@@ -370,86 +368,71 @@ async function getActiveInterface() {
         // Таймаут для предотвращения зависания
         const timeout = setTimeout(() => {
             if (!resolved) {
-                powershell.kill();
+                netsh.kill();
                 resolve(null);
                 resolved = true;
             }
         }, 10000); // 10 секунд таймаут
 
-        powershell.stdout.on('data', (data) => {
-            output += data.toString('utf8');
+        netsh.stdout.on('data', (data) => {
+            output += data.toString();
         });
 
-        powershell.on('close', () => {
+        netsh.on('close', (code) => {
             if (resolved) return;
             clearTimeout(timeout);
             resolved = true;
 
+            if (code !== 0) {
+                console.error('netsh command failed with code:', code);
+                resolve(null);
+                return;
+            }
+
             const lines = output.split('\n');
-            let currentAdapter = null;
-            let bestAdapter = null;
-            let hasGateway = false;
+            let activeInterface = null;
 
-            console.log('Parsing ipconfig output via PowerShell...');
+            console.log('Parsing netsh interface output...');
 
+            // Пропускаем заголовок и пустые строки
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
 
-                // Начинаем новый адаптер (русский и английский варианты)
-                if (line.includes('Адаптер') || line.includes('Adapter') || line.includes('адаптер')) {
-                    // Сохраняем предыдущий адаптер если у него был шлюз
-                    if (currentAdapter && hasGateway) {
-                        bestAdapter = currentAdapter;
-                    }
-
-                    // Начинаем новый адаптер
-                    currentAdapter = line.split(':')[0]
-                        .replace('Адаптер', '')
-                        .replace('адаптер', '')
-                        .replace('Adapter', '')
-                        .replace('Неизвестный адаптер', '')
-                        .replace('Unknown adapter', '')
-                        .trim();
-
-                    hasGateway = false;
-                    console.log(`Found adapter: "${currentAdapter}"`);
+                // Пропускаем заголовок и разделители
+                if (line.includes('Состояние адм.') ||
+                    line.includes('Admin State') ||
+                    line.includes('---') ||
+                    line === '') {
+                    continue;
                 }
-                // Проверяем на шлюз по умолчанию (русский и английский варианты)
-                else if (currentAdapter && (line.includes('Основной шлюз') || line.includes('Default Gateway') || line.includes('Шлюз') || line.includes('шлюз'))) {
-                    // Ищем значение шлюза в следующей строке
-                    const nextLine = lines[i + 1]?.trim() || '';
-                    if (nextLine && nextLine !== '' && !nextLine.includes(':') && nextLine !== 'fe80::1%16' && nextLine !== 'fe80::1') {
-                        // Проверяем, что это не IPv6 link-local адрес
-                        if (!nextLine.startsWith('fe80::')) {
-                            hasGateway = true;
-                            console.log(`Adapter "${currentAdapter}" has gateway: ${nextLine}`);
-                        }
-                    }
-                }
-                // Также проверяем на IPv4 адрес как дополнительный критерий
-                else if (currentAdapter && (line.includes('IPv4') || line.includes('IP Address') || line.includes('IPv4-адрес'))) {
-                    const nextLine = lines[i + 1]?.trim() || '';
-                    if (nextLine && nextLine !== '' && !nextLine.includes(':')) {
-                        // Это адаптер с IP, но без шлюза - менее приоритетный
-                        if (!bestAdapter) {
-                            bestAdapter = currentAdapter;
-                            console.log(`Adapter "${currentAdapter}" has IP but no gateway: ${nextLine}`);
-                        }
+
+                // Парсим строку интерфейса: "Разрешен       Подключен      Выделенный       Ethernet"
+                const parts = line.split(/\s+/);
+                if (parts.length >= 4) {
+                    const adminState = parts[0]; // Разрешен/Disabled
+                    const operationalState = parts[1]; // Подключен/Connected/Отключен/Disconnected
+                    const interfaceType = parts[2]; // Выделенный/Dedicated
+                    const interfaceName = parts.slice(3).join(' ').trim(); // Название интерфейса
+
+                    console.log(`Interface: "${interfaceName}" - Admin: ${adminState}, Operational: ${operationalState}`);
+
+                    // Ищем интерфейс который разрешен и подключен
+                    if ((adminState === 'Разрешен' || adminState === 'Enabled') &&
+                        (operationalState === 'Подключен' || operationalState === 'Connected')) {
+
+                        activeInterface = interfaceName;
+                        console.log(`Found active interface: "${activeInterface}"`);
+                        break; // Берем первый найденный активный интерфейс
                     }
                 }
             }
 
-            // Проверяем последний адаптер
-            if (currentAdapter && hasGateway) {
-                bestAdapter = currentAdapter;
-            }
-
-            console.log(`Selected best adapter: "${bestAdapter}"`);
-            resolve(bestAdapter);
+            console.log(`Selected active interface: "${activeInterface || 'none'}"`);
+            resolve(activeInterface);
         });
 
-        powershell.on('error', (error) => {
-            console.error('PowerShell command error:', error);
+        netsh.on('error', (error) => {
+            console.error('netsh command error:', error);
             if (!resolved) {
                 clearTimeout(timeout);
                 resolved = true;
